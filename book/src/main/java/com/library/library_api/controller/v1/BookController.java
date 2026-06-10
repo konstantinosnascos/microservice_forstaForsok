@@ -1,0 +1,87 @@
+package com.library.library_api.controller.v1;
+
+import com.library.library_api.dto.v1.BookRequest;
+import com.library.library_api.dto.v1.BookResponse;
+import com.library.library_api.service.BookService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Pageable;
+
+@RestController
+@RequestMapping("/api/v1/books")
+@Tag(name = "Books", description = "Book management endpoints")
+public class BookController {
+    private final BookService bookService;
+
+    public BookController(BookService bookService) {
+        this.bookService = bookService;
+    }
+
+
+    //kolla mass assignment
+    @Operation(summary = "Create a new book", description = "Create a new book and return that book")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "book creation successful"),
+            @ApiResponse(responseCode = "400", description = "Invalid input")
+    })
+    @PostMapping
+    public ResponseEntity<BookResponse> createBook(
+            @Valid
+            @RequestBody BookRequest bookRequest) {
+        BookResponse bookResponse = bookService.createBook(bookRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(bookResponse);
+    }
+
+    //http://localhost:8080/api/v1/books?page=0&size=1 för att testa pagination
+    @Operation(summary = "Get all books", description = "Return a list of all books")
+    @ApiResponse(responseCode = "200", description = "Successful retrieval of all books")
+    @GetMapping
+    public ResponseEntity<Page<BookResponse>> getAllBooks(
+            @PageableDefault(size=20, sort = "title") Pageable pageable) {
+        return ResponseEntity.ok(bookService.getAllBooks(pageable));
+    }
+
+    @Operation(summary = "Get book by ID", description = "Returns a book by ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Book found"),
+            @ApiResponse(responseCode = "404", description = "Book not found")
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<BookResponse> getBookById(
+            @PathVariable Long id) {
+        return ResponseEntity.ok(bookService.getBookById(id));
+    }
+
+    @Operation(summary = "Update book by ID", description = "Updates an existing book and returns the updated book")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Book updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input"),
+            @ApiResponse(responseCode = "404", description = "Book not found")
+    })
+    @PutMapping("/{id}")
+    public ResponseEntity<BookResponse> updateBook(
+            @PathVariable Long id,
+            @Valid
+            @RequestBody BookRequest bookRequest) {
+        return ResponseEntity.ok(bookService.updateBook(id, bookRequest));
+    }
+
+    @Operation(summary = "Delete book by ID", description = "Deletes an existing book")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Book deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Book not found")
+    })
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteBook(@PathVariable Long id) {
+        bookService.deleteBook(id);
+        return ResponseEntity.noContent().build();
+    }
+}
